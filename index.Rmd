@@ -1,0 +1,20 @@
+---
+title: "IODS course project"
+author: "Ilari Hotti"
+output:
+  html_document:
+    theme: united
+    toc: true
+    toc_depth: 2
+    fig_caption: true
+    fig_width: 8
+    fig_height: 6
+    code_folding: hide
+---
+
+
+HELLO WORLD
+
+***
+
+HELLO2
