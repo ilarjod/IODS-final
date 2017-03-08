@@ -1,5 +1,5 @@
 ---
-title: "IODS course project"
+title: "IODS final assignment"
 author: "Ilari Hotti"
 output:
   html_document:
@@ -13,8 +13,187 @@ output:
 ---
 
 
-HELLO WORLD
+***
+## Abstract
+
 
 ***
+## Hypothesis
 
-HELLO2
+
+***
+## Presenting the data
+
+#### Basic info
+I chose a survey dataset from [kaggle](https://www.kaggle.com/miroslavsabo/young-people-survey) for my final assignment.
+
+The data is from a Slovakian survey about music and movie preferences, hobbies & interests, phobias, health habits, personality traits, views on life , opinions, spending habits and finally demographics. Participants were Slovakians aged 15 to 30. Most of the variables had integer values from 1 to 5 representing how much the participant agrees with the statement in question.
+
+
+#### Data wrangling
+The dataset origanally contained 1010 observations and 150 variables. I created 3 new variables: `BMI` (calculated from weight and height), `Sports` (averaged passive and active sports interests) and `Depression` (averaged 10 questions that indicated depressed and anxious thinking: Self.criticism, Hypochondria, Loneliness, Changing.the.past, Life.struggles, Getting.up, Happiness, Energylevels, Personality_positivity and Socializing (last five had to be flipped around)). I also created a categorical variable for participants who scored higher or lower than 3.3 in my `Depression` index. 
+
+I chose to include all the variables about music and movie preferences, `Healthy_eating`, `Dancing`, `Age` and `Gender` in addition to the variables I created. So in the end there are 39 variables.
+
+There were also missing values and removing them meant the dataset shrank a bit to 832 observations.
+
+#### Examining data structure
+```{r warning=FALSE, message=FALSE}
+library("tidyverse")
+library("ggplot2")
+library("dplyr")
+library("GGally")
+library("corrplot")
+library("gridExtra")
+ym <- read.table("data/young_minds.txt")
+Palette <- c("#56B4E9", "firebrick1")
+Palette2 <- c("#56B4E9", "gray27")
+Palette3 <- c("#56B4E9", "orange")
+Palette4 <- c("#56B4E9", "purple")
+sexpalette = c("blue", "deeppink")
+```
+
+Let's examine the data set. 
+
+```{r warning=FALSE, message=FALSE, fig.height=4}
+glimpse(ym)
+summary(ym$Gender)
+summary(ym$Depressed)
+age <- ggplot(ym, aes(x = Age)) + geom_histogram(binwidth = 1, color = "black", fill = "#56B4E9")
+sex <- ggplot(ym, aes(x = "" , y  = Gender, fill=Gender)) + geom_bar(width = 1, stat = "identity") + coord_polar("y", start=0) + scale_fill_manual(values=sexpalette)
+
+grid.arrange(age, sex, ncol=2)
+
+
+```
+
+There are 497 female and 335 male participants. 129 of them are depressed according to my variable and categorization. Most are around 20 years old.
+
+#### Visualizing the variables
+
+```{r warning=FALSE, message=FALSE}
+Mu <- ggplot(ym, aes(x = Music)) + geom_histogram(binwidth = 1, color = "black", fill = "#56B4E9")
+Mo <- ggplot(ym, aes(x = Movies)) + geom_histogram(binwidth = 1, color = "black", fill = "#56B4E9")
+Da <- ggplot(ym, aes(x = Dancing)) + geom_histogram(binwidth = 1, color = "black", fill = "#56B4E9")
+Sp <- ggplot(ym, aes(x = Sports)) + geom_histogram(binwidth = 1, color = "black", fill = "#56B4E9")
+Bm <- ggplot(ym, aes(x = BMI)) + geom_histogram(binwidth = 0.3, fill = "firebrick1") + xlim(15, 40)
+De <- ggplot(ym, aes(x = Depression)) + geom_histogram(binwidth = 0.1, fill = "darkblue")
+grid.arrange(Mu, Mo, Da, Sp, Bm, De, ncol=2)
+``` 
+
+Everybody likes music and movies in general. 
+
+
+### Correlations
+
+So what kind of correlations can we find in the data? We can have a short look at the correlations between different music preferences and movie preferences.
+
+
+
+```{r warning=FALSE, message=FALSE}
+music_matrix <- cor(ym[9:27]) %>% round(digits = 2)
+movie_matrix <- cor(ym[28:39]) %>% round(digits = 2)
+
+corrplot(music_matrix, method="circle", type="lower", cl.pos = "b", tl.pos = "d", tl.cex = 0.8)
+corrplot(movie_matrix, method="circle", type="lower", cl.pos = "b", tl.pos = "d", tl.cex = 0.8)
+```
+
+The correlations make sense but are not very interesting. 
+```{r warning=FALSE, message=FALSE}
+spoD <- ggplot(ym, aes(x = Sports, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette)
+eatD <- ggplot(ym, aes(x = Healthy_eating, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette)
+danD <- ggplot(filter(ym, Gender == "female"), aes(x = Dancing, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette) +xlab("Dancing(girls)")
+danDb <- ggplot(filter(ym, Gender == "male"), aes(x = Dancing, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette) +xlab("Dancing(boys)")
+bmiD <- ggplot(ym, aes(x = BMI, fill = Depressed)) + geom_histogram(binwidth = 0.5 , position="fill") + scale_fill_manual(values=Palette)+xlim(15,40)
+ageD <- ggplot(ym, aes(x = Age, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette)
+grid.arrange(spoD, eatD, danD, danDb, bmiD, ageD, ncol=2)
+```
+
+```{r warning=FALSE, message=FALSE, fig.height=3, fig.width=5}
+genD <- ggplot(ym, aes(x = Gender, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette)
+genD
+```
+
+
+How about music and movie preference correlations with `Depression`?
+
+```{r warning=FALSE, message=FALSE}
+cor(ym[9:27], ym[4]) %>% round(digits = 2)
+cor(ym[28:39], ym[4]) %>% round(digits = 2)
+```
+
+Depressed people seem to prefer slow, classical and rock music, and dislike rap and dance. As a side note the boys' `Musical` variable has opposite correlation with `Depression` to girls' one.
+
+In the movie section highest positive correlation is with `Romantic` and highest negative correlation with `Action`. 
+
+Some barcharts of the most interesting variables:
+
+```{r warning=FALSE, message=FALSE, fig.height=3}
+musicalboys <- ggplot(filter(ym, Gender == "male"), aes(x = Musical, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette4) + xlab("Musical(boys)") 
+musicalgirls <- ggplot(filter(ym, Gender == "female"), aes(x = Musical, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette4) + xlab("Musical(girls)")
+grid.arrange(musicalboys, musicalgirls, ncol=2)
+
+```
+
+
+
+```{r warning=FALSE, message=FALSE}
+slowD <- ggplot(ym, aes(x = Slow_vs_Fast, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette2)
+danceD <- ggplot(ym, aes(x = Dance, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette2)
+classicalD <- ggplot(ym, aes(x = Classical, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette2)
+rapD <- ggplot(ym, aes(x = Hiphop_Rap, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette2)
+rockD <- ggplot(ym, aes(x = Rock, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette2)
+altD <- ggplot(ym, aes(x = Alternative, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette2)
+grid.arrange(slowD, danceD, classicalD, rapD, rockD, altD, ncol=2)
+```
+```{r warning=FALSE, message=FALSE, fig.height=2}
+romD <- ggplot(ym, aes(x = Romantic, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette3)
+actD <- ggplot(ym, aes(x = Action, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette3)
+grid.arrange(romD, actD, ncol=2)
+```
+
+
+
+Could there be statistical significance to any explanatory connection in the data regarding the `Depression` variable?
+
+*** 
+## Fitting a regression model
+```{r warning=FALSE, message=FALSE}
+m_music <- glm(Depressed ~ Slow_vs_Fast + Hiphop_Rap + Dance, data = ym, family = "binomial")
+summary(m_music)
+```
+
+```{r warning=FALSE, message=FALSE}
+m <- glm(Depressed ~ Sports + Healthy_eating + Gender, data = ym, family = "binomial")
+summary(m)
+```
+
+So `Hiphop_Rap` is a statistically important explanatory variable.
+
+```{r warning=FALSE, message=FALSE}
+m_music2 <- glm(Depressed ~ Rock + Classical + Alternative, data = ym, family = "binomial")
+summary(m_music2)
+```
+
+Intercept = 3* ???
+
+```{r warning=FALSE, message=FALSE}
+m_movies <- glm(Depressed ~ Romantic + Tales + Animated, data = ym, family = "binomial")
+summary(m_movies)
+
+m_movies2 <- glm(Depressed ~ Action + Western, data = ym, family = "binomial")
+summary(m_movies2)
+
+m_bonus <- glm(Depressed ~ Action + Hiphop_Rap + Sports, data = ym, family = "binomial")
+summary(m_bonus)
+m_bonus2 <- glm(Depressed ~ Action, data = ym, family = "binomial")
+summary(m_bonus2)
+```
+***
+##Analysis of the model
+
+
+
+***
+## Conclusions
+
