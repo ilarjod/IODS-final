@@ -1,4 +1,10 @@
 library("dplyr")
+# ilari hotti 
+# ilari.hotti at helsinki . fi
+# 8.3.2017
+
+# data wrangling for the final assignment of the university of helsinki IODS course
+
 
 # got the data from https://www.kaggle.com/miroslavsabo/young-people-survey 
 # there's some empty datapoints in addition to NA's

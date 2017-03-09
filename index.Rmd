@@ -1,6 +1,7 @@
 ---
 title: "IODS final assignment"
-author: "Ilari Hotti"
+author: "Ilari Hotti : ilari.hotti@helsinki.fi"
+date: 8.3.2017
 output:
   html_document:
     theme: united
@@ -14,12 +15,11 @@ output:
 
 
 ***
-## Abstract
+## Introduction
 
+For this assignment I manipulated survey data about young Slovakians and created a variable about depression from their opinions and life views that indicated negative and anxious thought patterns. I investigated the young people's music and movie preferences and other variables to find connections to the depression indicator. Linear modelling is used to quantify the connections.
 
-***
-## Hypothesis
-
+I'm interested in finding any kind of correlations between depression and music and movie preferences or hobbies. My goal is also to visualize the variables in a way that helps make the connections clear.
 
 ***
 ## Presenting the data
@@ -29,13 +29,14 @@ I chose a survey dataset from [kaggle](https://www.kaggle.com/miroslavsabo/young
 
 The data is from a Slovakian survey about music and movie preferences, hobbies & interests, phobias, health habits, personality traits, views on life , opinions, spending habits and finally demographics. Participants were Slovakians aged 15 to 30. Most of the variables had integer values from 1 to 5 representing how much the participant agrees with the statement in question.
 
-
 #### Data wrangling
-The dataset origanally contained 1010 observations and 150 variables. I created 3 new variables: `BMI` (calculated from weight and height), `Sports` (averaged passive and active sports interests) and `Depression` (averaged 10 questions that indicated depressed and anxious thinking: Self.criticism, Hypochondria, Loneliness, Changing.the.past, Life.struggles, Getting.up, Happiness, Energylevels, Personality_positivity and Socializing (last five had to be flipped around)). I also created a categorical variable for participants who scored higher or lower than 3.3 in my `Depression` index. 
+The dataset origanally contained 1010 observations and 150 variables. I created 4 new variables: `BMI` (calculated from weight and height), `Sports` (averaged passive and active sports interests) and `Depression` (averaged 10 questions that indicated depressed and anxious thinking: Self.criticism, Hypochondria, Loneliness, Changing.the.past, Life.struggles, Getting.up, Happiness, Energylevels, Personality_positivity and Socializing (last five had to be flipped around)). I also created a categorical variable for participants who scored higher or lower than 3.3 in my `Depression` index. 
 
 I chose to include all the variables about music and movie preferences, `Healthy_eating`, `Dancing`, `Age` and `Gender` in addition to the variables I created. So in the end there are 39 variables.
 
 There were also missing values and removing them meant the dataset shrank a bit to 832 observations.
+
+[Here](https://github.com/ilarjod/IODS-final/blob/master/data/create_young_minds.R) is a link to the data wrangling script.
 
 #### Examining data structure
 ```{r warning=FALSE, message=FALSE}
@@ -67,7 +68,7 @@ grid.arrange(age, sex, ncol=2)
 
 ```
 
-There are 497 female and 335 male participants. 129 of them are depressed according to my variable and categorization. Most are around 20 years old.
+There are 497 female and 335 male participants. 129 of them are depressed according to my variable and categorization. Most are around 20 years old. The variables are all very similar with integer values 1 to 5 except for the variables created by me.
 
 #### Visualizing the variables
 
@@ -81,10 +82,10 @@ De <- ggplot(ym, aes(x = Depression)) + geom_histogram(binwidth = 0.1, fill = "d
 grid.arrange(Mu, Mo, Da, Sp, Bm, De, ncol=2)
 ``` 
 
-Everybody likes music and movies in general. 
+Everybody likes music and movies in general. `Depression` seems to have a bit of a bell curve shape.
 
 
-### Correlations
+## Correlations
 
 So what kind of correlations can we find in the data? We can have a short look at the correlations between different music preferences and movie preferences.
 
@@ -98,7 +99,8 @@ corrplot(music_matrix, method="circle", type="lower", cl.pos = "b", tl.pos = "d"
 corrplot(movie_matrix, method="circle", type="lower", cl.pos = "b", tl.pos = "d", tl.cex = 0.8)
 ```
 
-The correlations make sense but are not very interesting. 
+The correlations make sense but are not very interesting. The goal is to find predictors for the `Depression`.
+
 ```{r warning=FALSE, message=FALSE}
 spoD <- ggplot(ym, aes(x = Sports, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette)
 eatD <- ggplot(ym, aes(x = Healthy_eating, fill = Depressed)) + geom_bar(position="fill") + scale_fill_manual(values=Palette)
@@ -114,8 +116,9 @@ genD <- ggplot(ym, aes(x = Gender, fill = Depressed)) + geom_bar(position="fill"
 genD
 ```
 
+There are some patterns visible. The gender difference regarding depression is usually found in real studies as well.
 
-How about music and movie preference correlations with `Depression`?
+Let's check out music and movie preference correlations with `Depression`.
 
 ```{r warning=FALSE, message=FALSE}
 cor(ym[9:27], ym[4]) %>% round(digits = 2)
@@ -157,43 +160,66 @@ grid.arrange(romD, actD, ncol=2)
 Could there be statistical significance to any explanatory connection in the data regarding the `Depression` variable?
 
 *** 
-## Fitting a regression model
-```{r warning=FALSE, message=FALSE}
-m_music <- glm(Depressed ~ Slow_vs_Fast + Hiphop_Rap + Dance, data = ym, family = "binomial")
-summary(m_music)
-```
+## Modelling
 
+#### Simple and multiple linear modelling
+
+First let's try a linear model to explain `Depression` with `Sports`, `Healthy_eating`, `BMI`. 
 ```{r warning=FALSE, message=FALSE}
-m <- glm(Depressed ~ Sports + Healthy_eating + Gender, data = ym, family = "binomial")
+m <- lm(Depression ~ Sports + Healthy_eating + BMI , data = ym)
 summary(m)
+par(mfrow = c(2,2))
+plot(m, which = c(1,2,5)) 
 ```
 
-So `Hiphop_Rap` is a statistically important explanatory variable.
+`BMI`is not statistically significant and seems to cause problems as there are some high leverage outliers. So I think the model will work better if I drop the variable altogether. 
 
 ```{r warning=FALSE, message=FALSE}
-m_music2 <- glm(Depressed ~ Rock + Classical + Alternative, data = ym, family = "binomial")
-summary(m_music2)
+m2 <- lm(Depression ~ Sports + Healthy_eating , data = ym)
+summary(m2)
+par(mfrow = c(2,2))
+plot(m2, which = c(1,2,5)) 
 ```
 
-Intercept = 3* ???
+Now there are no powerful outliers so the model looks good. 
+
+
+
+Let's create another model with music preference explanatory variables.
 
 ```{r warning=FALSE, message=FALSE}
-m_movies <- glm(Depressed ~ Romantic + Tales + Animated, data = ym, family = "binomial")
-summary(m_movies)
-
-m_movies2 <- glm(Depressed ~ Action + Western, data = ym, family = "binomial")
-summary(m_movies2)
-
-m_bonus <- glm(Depressed ~ Action + Hiphop_Rap + Sports, data = ym, family = "binomial")
-summary(m_bonus)
-m_bonus2 <- glm(Depressed ~ Action, data = ym, family = "binomial")
-summary(m_bonus2)
+mm <- lm(Depression ~ Slow_vs_Fast + Hiphop_Rap + Classical, data = ym)
+summary(mm)
+par(mfrow = c(2,2))
+plot(mm, which = c(1,2,5)) 
 ```
-***
-##Analysis of the model
+
+The model diagnostics imply that the model assumptions are OK.
 
 
+#### Logistic linear modelling
+
+With logistic linear modelling it is possible to classify observations into groups. I'm interested in the logical `Depressed` variable I created.
+
+```{r warning=FALSE, message=FALSE}
+m3<- glm(Depressed ~ Action , data = ym, family = "binomial")
+summary(m3)
+```
+
+```{r warning=FALSE, message=FALSE}
+OR <- coef(m3) %>% exp
+CI <- exp(confint(m3))
+cbind(OR, CI)
+probabilities <- predict(m3, type ="response")
+ym <- mutate(ym, probability = probabilities)
+ym <- mutate(ym, prediction = probability > 0.2)
+table(Depressed = ym$Depressed, prediction = ym$prediction)
+```
+
+
+Predicting depressive tendencies based on if a person likes action movies is not the most effective way maybe but the `Movies` variable has some effect on the `Depression`variable.
 
 ***
 ## Conclusions
 
+In conclusion the variable `Depression` I created had some intuitive and meaningful connections with the rest of the data, even though low in explaining power, which is to be expected. Anyway there were music and movie preferences that correlate with depressed and anxious thinking. Especially action movies were disliked by youngsters with higher depression tendencies. Also sports as a hobby predicts lower chance of depression.
